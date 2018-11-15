@@ -2,18 +2,20 @@ import tensorflow as tf
 import numpy as np
 
 def read_data():
-	x = np.array([[1.0, 2.0, 3.0],[3.0, 5.0, 7.0]])
+	x = np.array([[1.0, 2.0, 2.0],[3.0, 5.0, 7.0]])
 	y = np.array([[1.0],[0.0]])
 	return x, y
 
 def get_sub(data, filter, col):
+	print(filter)
+	print(col)
 	filteredx = []
 	filteredy = []
 	x = data["x"]
 	y = data["y"]
 
 	for i in range(len(x)):
-		if(x[i][col] == filter):
+		if(int(x[i][col]) == filter):
 			filteredx.append(x[i])
 			filteredy.append(labels[i])
 

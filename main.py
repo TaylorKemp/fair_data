@@ -35,7 +35,7 @@ def model():
 			lam_value = tf.placeholder(tf.float32, shape=(1,1))
 
 		with tf.name_scope("expected_loss_sub"):
-			sub_loss = tf.placeholder(tf.float32, shape=(batch_size,1))
+			sub_loss = tf.placeholder(tf.float32)
 
 		with tf.name_scope("expected_loss_ov"):
 			ov_loss = tf.placeholder(tf.float32, shape=(batch_size,1))
@@ -44,7 +44,8 @@ def model():
 			exp = tf.exp(sub_loss - ov_loss)
 			reg = tf.log(1+exp)
 
-		loss = tf.losses.mean_squared_error(labels, output) + lam_value * reg
+		squared_error = tf.losses.mean_squared_error(labels, output)
+		loss = squared_error + lam_value * reg
 		tf.summary.scalar("loss_summary", loss)
 
 	with tf.name_scope("optimizer"):
@@ -60,9 +61,13 @@ def model():
 		for batch in batches:
 			for epoch in range(num_epochs):
 				sub_x, sub_y = rd.get_sub(batch, groups[epoch % num_groups], column)
-				ov_loss = sess.run(loss, 
+
+				ov_loss = sess.run(squared_error, 
 					feed_dict={x_features:batch["x"], labels:batch["y"]})
-				sub_loss = sess.run(loss, 
+				
+				print(sub_x)
+				print(sub_y)
+				sub_loss = sess.run(squared_error, 
 					feed_dict={x_features:sub_x, 
 					labels:sub_y})
 
@@ -75,4 +80,3 @@ def model():
 					writer.add_summary(summary)
 
 model()
-
