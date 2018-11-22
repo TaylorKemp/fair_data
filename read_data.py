@@ -6,27 +6,25 @@ def read_data():
 	y = np.array([[1.0],[0.0]])
 	return x, y
 
-def get_sub(data, filter, col):
-	print(filter)
-	print(col)
+def get_sub(data, filter_value, col):
 	filteredx = []
 	filteredy = []
 	x = data["x"]
 	y = data["y"]
+	epsilon = 0.000001
 
 	for i in range(len(x)):
-		if(int(x[i][col]) == filter):
+		if(np.abs(x[i][col]) - filter_value) < epsilon:
 			filteredx.append(x[i])
-			filteredy.append(labels[i])
+			filteredy.append(y[i])
 
-	return {"x":filteredx, "y":filteredy}
+	return filteredx, filteredy
 
 def get_batches(features, labels, batch_size):
 	num_batches = int(len(features) / batch_size)
 	batches = []
 	lower = 0
 	upper = batch_size
-
 	if(len(features) <= batch_size):
 		return [{"x":features, "y":labels}]
 
@@ -36,5 +34,4 @@ def get_batches(features, labels, batch_size):
 		upper += batch_size
 
 	#last batch not getting added
-
 	return batches
