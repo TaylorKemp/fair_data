@@ -18,28 +18,40 @@ def model():
 
 	num_features = len(features[0])#determine num_features based on 
 
-	with tf.name_scope("subGroup"):
-		group_x = tf.placeholder(tf.float32, shape=(None, num_features))
-		group_y = tf.placeholder(tf.float32, shape=(None, 1))
-
-	with tf.name_scope("remainingData"):
-		rest_of_x = tf.placeholder(tf.float32, shape=(None, num_features))
-		rest_of_y = tf.placeholder(tf.float32, shape=(None, 1))
 
 	with tf.name_scope("features"):
+		with tf.name_scope("subGroup"):
+			group_x = tf.placeholder(tf.float32, shape=(None, num_features))
+
+		with tf.name_scope("remainingData"):
+			rest_of_x = tf.placeholder(tf.float32, shape=(None, num_features))
+
 		x_features = tf.placeholder(tf.float32, shape=(None, num_features))
 
 	with tf.name_scope("labels"):
-		labels = tf.concat(rest_of_y, group_y)
+		with tf.name_scope("subGroup"):
+			group_y = tf.placeholder(tf.float32, shape=(None, 1))
+
+		with tf.name_scope("remainingData"):
+			rest_of_y = tf.placeholder(tf.float32, shape=(None, 1))
+
+		labels = tf.concat([rest_of_y, group_y], 0)
 
 	with tf.name_scope("model"):
-		weights = tf.Variable(tf.random_normal([num_features, 1]))
-		bias = tf.Variable(0.0)
-		output_rest = tf.matmul(rest_of_x, weights) + bias
-		output_group = tf.matmul(group_x, weight) + bias
-		output = tf.concat(output_rest, output_group)
-		weight_summary = tf.summary.histogram("weightSummary", weights)
-		bias_summary = tf.summary.histogram("bias_summary", bias)
+		weights = tf.Variable(tf.random_normal([num_features, 1]), name="weights")
+		bias = tf.Variable(0.0, name="bias")
+
+		with tf.name_scope("remainingData"):
+			output_rest = tf.matmul(rest_of_x, weights) + bias
+
+		with tf.name_scope("subGroup"):
+			output_group = tf.matmul(group_x, weights) + bias
+
+		output = tf.concat([output_rest, output_group], 0)
+
+		with tf.name_scope("summaries"):
+			weight_summary = tf.summary.histogram("weightSummary", weights)
+			bias_summary = tf.summary.histogram("bias_summary", bias)
 
 	with tf.name_scope("lossFunction"):
 		with tf.name_scope("placeholder"):
@@ -54,8 +66,11 @@ def model():
 		with tf.name_scope("regularizer"):#need to scale these by the size of the other
 			exp = tf.exp(group_loss - squared_error)
 			reg = tf.log(tf.constant(1.0)+exp)#fix to have sub loss not be a fixed input so gradients can pass
+		
 		loss = squared_error + lam_value * reg
-		loss_summary = tf.summary.scalar("lossSummary", loss)
+
+		with tf.name_scope("summaries"):
+			loss_summary = tf.summary.scalar("lossSummary", loss)
 
 	with tf.name_scope("optimizer"):
 		opt = tf.train.GradientDescentOptimizer(
@@ -72,20 +87,16 @@ def model():
 
 		for batch in batches:
 			for epoch in range(num_epochs):
-				sub_x, sub_y = rd.get_sub(batch, groups[epoch % num_groups], column)
-
-				if(len(sub_x) < 1 or len(sub_y) < 1):
-					sub_loss = sess.run(zero)
-				else:
-					sub_loss = sess.run(squared_error, 
-						feed_dict={x_features:sub_x, 
-						labels:sub_y})
-
-
+				sub_x, sub_y, rest_x, rest_y = rd.get_groups(batch, groups[epoch % num_groups], column)
+				#issue regarding what if no occurences of group happens in dataset, or batch???
+				#potential issue of this is that it will cause problems with how model is defined currently
+				#could potentially feed in values such that can gaurentee zero loss???
+				#not sure how I would like to proceed.
 				summary, overall_loss, _ = sess.run([merged, squared_error, opt], 
-					feed_dict={x_features:batch["x"], 
-					labels:batch["y"], 
-					group_loss:sub_loss})
+					feed_dict={group_x:sub_x,
+					group_y: sub_y,
+					rest_of_x: rest_x,
+					rest_of_y: rest_y})
 
 				if(epoch == num_epochs - 1):
 					print("summary written")
