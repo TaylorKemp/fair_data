@@ -30,13 +30,14 @@ def model():
 		x_features = tf.placeholder(tf.float32, shape=(None, num_features))
 
 	with tf.name_scope("labels"):
-		labels = tf.placeholder(tf.float32, shape=(None, 1))
+		labels = tf.concat(rest_of_y, group_y)
 
 	with tf.name_scope("model"):
 		weights = tf.Variable(tf.random_normal([num_features, 1]))
 		bias = tf.Variable(0.0)
-		output = tf.matmul(x_features, weights) + bias#want output for group and majority
-		#will concatenate these outputs to form whole for use in loss function
+		output_rest = tf.matmul(rest_of_x, weights) + bias
+		output_group = tf.matmul(group_x, weight) + bias
+		output = tf.concat(output_rest, output_group)
 		weight_summary = tf.summary.histogram("weightSummary", weights)
 		bias_summary = tf.summary.histogram("bias_summary", bias)
 
@@ -46,7 +47,7 @@ def model():
 
 		with tf.name_scope("expected_loss_sub"):
 			zero = tf.constant(0.0)
-			group_loss = tf.placeholder(tf.float32, shape=())
+			group_loss = tf.losses.mean_squared_error(group_y, output_group)
 
 		squared_error = tf.losses.mean_squared_error(labels, output)
 
@@ -74,7 +75,7 @@ def model():
 				sub_x, sub_y = rd.get_sub(batch, groups[epoch % num_groups], column)
 
 				if(len(sub_x) < 1 or len(sub_y) < 1):
-					sub_loss = sess.run(zero)#this is the problem with the loss summary, needs to have shape (0,)
+					sub_loss = sess.run(zero)
 				else:
 					sub_loss = sess.run(squared_error, 
 						feed_dict={x_features:sub_x, 
