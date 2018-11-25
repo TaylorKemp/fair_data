@@ -2,19 +2,23 @@ import numpy as np
 import tensorflow as tf
 import read_data as rd
 
-file="TEDS-D-2006-2011-DS0001-data/TEDS-D-2006-2011-DS0001-data-ascii.txt"
+file="clean_dataset.txt"
+trial = "1"
 
 def model():
 	tf.summary.FileWriterCache.clear()
 	learn_rate = 0.0001#need to determine an optimal learning rate
-	batch_size = 30#need to determine a good batch size based on total dataset size
-	num_epochs = 25#need to determine a good epoch amount
+	batch_size = 25#need to determine a good batch size based on total dataset size
+	num_epochs = 10#need to determine a good epoch amount
+	iterations = 3
 	num_groups = 2
 	lam = 0.0#should vary this in order to determine impact on accuracy as well as fairness
 	groups = [0, 1]# should have values of group
 	column = 2#will need to obtain from dataset
 	#procedure for choosing optimal lam for a dataset
 	features, labels,test_features, test_labels = rd.read_data(filename=file)
+	#need to shuffle the data. This is causing a problem with the second half overriding the first half
+	#hence causing problems
 	batches = rd.get_batches(features, labels, batch_size)
 	#shuffle data then take 80% for training 20% for validation
 
@@ -44,9 +48,7 @@ def model():
 		bias = tf.Variable(0.0, name="bias")
 
 		with tf.name_scope("remainingData"):
-			print(np.shape(tf.matmul(rest_of_x, weights)))
 			output_rest = tf.matmul(rest_of_x, weights) + bias
-			print(np.shape(output_rest))
 
 		with tf.name_scope("subGroup"):
 			output_group = tf.matmul(group_x, weights) + bias
@@ -87,51 +89,53 @@ def model():
 
 	with tf.Session() as sess:
 		merged = tf.summary.merge_all()
-		writer = tf.summary.FileWriter("graph", sess.graph)
+		writer = tf.summary.FileWriter("graph/trial" + trial, sess.graph)
 
 		sess.run(tf.initializers.global_variables())
+		for rnd in range(iterations):
+			for batch in batches:
+				for epoch in range(num_epochs):
+					sub_x, sub_y, rest_x, rest_y = rd.get_groups(batch, groups[epoch % num_groups], column)
 
-		for batch in batches:
-			for epoch in range(num_epochs):
-				sub_x, sub_y, rest_x, rest_y = rd.get_groups(batch, groups[epoch % num_groups], column)
+					if len(sub_y) < 1:
+						sub_y = np.reshape([sess.run(bias)], (1, 1))
+						sub_x = sess.run(zeros)
+					if len(rest_y) < 1:
+						rest_y = np.reshape([sess.run(bias)], (1, 1))
+						rest_x = sess.run(zeros)
 
-				if len(sub_y) < 1:
-					sub_y = np.reshape([sess.run(bias)], (1, 1))
-					sub_x = sess.run(zeros)
-				if len(rest_y) < 1:
-					rest_y = np.reshape([sess.run(bias)], (1, 1))
-					rest_x = sess.run(zeros)
+					grads, summary, overall_loss, _ = sess.run([grad, merged, squared_error, opt], 
+						feed_dict={group_x:sub_x,
+						group_y: sub_y,
+						rest_of_x: rest_x,
+						rest_of_y: rest_y,
+						len_group: len(sub_y),
+						len_rest: len(rest_y)})
 
-				grads, summary, overall_loss, _ = sess.run([grad, merged, squared_error, opt], 
-					feed_dict={group_x:sub_x,
-					group_y: sub_y,
-					rest_of_x: rest_x,
-					rest_of_y: rest_y,
-					len_group: len(sub_y),
-					len_rest: len(rest_y)})
+					if(epoch % 5 == 0):
+						#print("summary written")
+						writer.add_summary(summary, global_step=iteration)
+						out_val = sess.run(output_group, 
+									feed_dict={group_x:test_features})
 
-				if(epoch % 5 == 0):
-					#print("summary written")
-					writer.add_summary(summary, global_step=iteration)
-					iteration = iteration + 1
-		out_val = sess.run(output_group, 
-					feed_dict={group_x:test_features})
+						num_correct = 0
+						out_val = np.reshape(out_val, (1, -1))
 
-		num_correct = 0
-		out_val = np.reshape(out_val, (1, -1))
+						for i in range(len(test_labels)):
+							if(out_val[0][i] > 0 and test_labels[i] == 1):
+								num_correct += 1
+							elif(out_val[0][i] <= 0 and test_labels[i] == -1):
+								num_correct += 1
 
-		for i in range(len(test_labels)):
-			if(out_val[0][i] >= 1 and test_labels[i] == 1):
-				num_correct += 1
-			elif(out_val[0][i] <= -1 and test_labels[i] == -1):
-				num_correct += 1
-			elif(out_val[0][i] < 1 and out_val[0][i] > -1 and test_labels[i] == 0):
-				num_correct += 1
+						print(sess.run(
+							tf.losses.mean_squared_error(
+								tf.reshape(out_val, shape=(1, 750)), tf.reshape(test_labels, shape=(1, 750)))))
 
-		print("Total Correct:")
-		print(num_correct)
-		print("Out of:")
-		print(len(test_labels))
+						print("Total Correct:")
+						print(num_correct)
+						print("Out of:")
+						print(len(test_labels))
+						iteration = iteration + 1
 
 
 model()

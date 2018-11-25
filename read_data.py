@@ -56,13 +56,71 @@ def get_line(f):
 	list_vals = list_vals[0:11] + list_vals[12:]
 	return y_vals, list_vals, s
 
-def read_data(filename=None, num_samples=20000, save_loc="new_dataset.ascii"):
+def clean_dataset(filename=None, num_samples=5000, save_loc="clean_dataset.txt"):
+	if(filename==None):
+		return
+	else:
+		lines = []
+		with open(filename) as f:
+			sample = 0
+			while sample < num_samples:
+				y_smp, x_smp, s = get_line(f)
+				f.read(1)
+				if(y_smp == 1 and x_smp[2] == 1):
+					lines.append(s)
+					print("added to s")
+					sample += 1
+
+		with open(filename) as f:
+			sample = 0
+			while sample < num_samples:
+				y_smp, x_smp, s = get_line(f)
+				f.read(1)
+				if(y_smp == -1 and x_smp[2] == 1):
+					lines.append(s)
+					print("added to s")
+					sample += 1
+
+		with open(filename) as f:
+			sample = 0
+			while sample < num_samples:
+				y_smp, x_smp, s = get_line(f)
+				f.read(1)
+				if(y_smp == -1 and x_smp[2] == 0):
+					lines.append(s)
+					print("added to s")
+					sample += 1
+
+		with open(filename) as f:
+			sample = 0
+			while sample < num_samples:
+				y_smp, x_smp, s = get_line(f)
+				f.read(1)
+				if(y_smp == 1 and x_smp[2] == 0):
+					lines.append(s)
+					print("added to s")
+					sample += 1
+
+		print("shuffling dataset")
+		np.random.shuffle(lines)
+
+		with open(save_loc, "a+") as f:
+			for lin in lines:
+				f.write(lin)
+				f.write("\n")
+				print("added line")
+
+		return
+
+
+
+
+def read_data(filename=None, num_samples=3000):
 	test_size = int(num_samples / 4)
 	x = []
 	y = []
 	test_x = []
 	test_y = []
-	f_two = open(save_loc, "w+")
 
 	if filename == None:
 		x = np.array([[1.0, 2.0, 2.0],[3.0, 5.0, 7.0]])
@@ -71,27 +129,19 @@ def read_data(filename=None, num_samples=20000, save_loc="new_dataset.ascii"):
 	else:
 		#file = np.loadtxt(filename, dtype=np.float32)
 		with open(filename) as f:
-			sample = 0
-			while sample < num_samples:
+			for sample in range(num_samples):
 				y_smp, x_smp, s = get_line(f)
 				f.read(1)
-				if(y_smp != 0):
-					print("wrote a value")
-					f_two.write(s)
-					x.append(np.array(x_smp))
-					y.append(np.array(y_smp))
-					sample += 1
-			sample = 0
-			while sample < test_size:
+				x.append(np.array(x_smp))
+				y.append(np.array(y_smp))
+
+			for sample in range(test_size):
 				y_smp, x_smp, s = get_line(f)
 				f.read(1)
-				if(y_smp != 0):
-					test_x.append(np.array(x_smp))
-					test_y.append(np.array(y_smp))
-					sample += 1
+				test_x.append(np.array(x_smp))
+				test_y.append(np.array(y_smp))
 		y = np.reshape(y, (-1, 1))
 		test_y = np.reshape(test_y, (-1, 1))
-		f_two.close()
 		return x, y, test_x, test_y
 
 
@@ -130,4 +180,4 @@ def get_batches(features, labels, batch_size):
 	#last batch not getting added
 	return batches
 
-read_data(filename="TEDS-D-2006-2011-DS0001-data/TEDS-D-2006-2011-DS0001-data-ascii.txt")
+#clean_dataset(filename="TEDS-D-2006-2011-DS0001-data/TEDS-D-2006-2011-DS0001-data-ascii.txt")
