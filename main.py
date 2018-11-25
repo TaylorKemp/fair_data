@@ -2,17 +2,19 @@ import numpy as np
 import tensorflow as tf
 import read_data as rd
 
+file="TEDS-D-2006-2011-DS0001-data/TEDS-D-2006-2011-DS0001-data-ascii.txt"
+
 def model():
 	tf.summary.FileWriterCache.clear()
-	learn_rate = 0.001#need to determine an optimal learning rate
-	batch_size = 1#need to determine a good batch size based on total dataset size
-	num_epochs = 20#need to determine a good epoch amount
+	learn_rate = 0.0001#need to determine an optimal learning rate
+	batch_size = 30#need to determine a good batch size based on total dataset size
+	num_epochs = 25#need to determine a good epoch amount
 	num_groups = 2
-	lam = 0.0001#should vary this in order to determine impact on accuracy as well as fairness
+	lam = 0.0#should vary this in order to determine impact on accuracy as well as fairness
 	groups = [0, 1]# should have values of group
 	column = 2#will need to obtain from dataset
 	#procedure for choosing optimal lam for a dataset
-	features, labels = rd.read_data()
+	features, labels,test_features, test_labels = rd.read_data(filename=file)
 	batches = rd.get_batches(features, labels, batch_size)
 	#shuffle data then take 80% for training 20% for validation
 
@@ -42,7 +44,9 @@ def model():
 		bias = tf.Variable(0.0, name="bias")
 
 		with tf.name_scope("remainingData"):
+			print(np.shape(tf.matmul(rest_of_x, weights)))
 			output_rest = tf.matmul(rest_of_x, weights) + bias
+			print(np.shape(output_rest))
 
 		with tf.name_scope("subGroup"):
 			output_group = tf.matmul(group_x, weights) + bias
@@ -58,14 +62,14 @@ def model():
 			lam_value = tf.constant(lam)
 
 		with tf.name_scope("expected_loss_sub"):
-			zeros = tf.constant([0.0, 0.0, 0.0], shape=(1,3))
+			zeros = tf.zeros((1,num_features), dtype=tf.float32)
 			group_loss = tf.losses.mean_squared_error(group_y, output_group)
 
 		squared_error = tf.losses.mean_squared_error(labels, output)
 
 		with tf.name_scope("regularizer"):#need to scale these by the size of the other
-			exp = tf.exp(len_rest * group_loss - len_group * squared_error)
-			reg = tf.log(tf.constant(1.0)+exp)#fix to have sub loss not be a fixed input so gradients can pass
+			exp = len_rest * group_loss - len_group * squared_error
+			reg = tf.nn.softplus(exp)
 		
 		loss = squared_error + lam_value * reg
 
@@ -73,8 +77,10 @@ def model():
 			loss_summary = tf.summary.scalar("lossSummary", loss)
 
 	with tf.name_scope("optimizer"):
-		opt = tf.train.GradientDescentOptimizer(
-			learning_rate=learn_rate).minimize(loss)
+		optim = tf.train.GradientDescentOptimizer(
+			learning_rate=learn_rate)
+		grad = optim.compute_gradients(loss)
+		opt = optim.minimize(loss)
 
 	saver = tf.train.Saver()
 	iteration = 0
@@ -96,7 +102,7 @@ def model():
 					rest_y = np.reshape([sess.run(bias)], (1, 1))
 					rest_x = sess.run(zeros)
 
-				summary, overall_loss, _ = sess.run([merged, squared_error, opt], 
+				grads, summary, overall_loss, _ = sess.run([grad, merged, squared_error, opt], 
 					feed_dict={group_x:sub_x,
 					group_y: sub_y,
 					rest_of_x: rest_x,
@@ -104,12 +110,28 @@ def model():
 					len_group: len(sub_y),
 					len_rest: len(rest_y)})
 
-				if(epoch == num_epochs - 1):
-					print("summary written")
-					writer.add_summary(summary, iteration)
+				if(epoch % 5 == 0):
+					#print("summary written")
+					writer.add_summary(summary, global_step=iteration)
 					iteration = iteration + 1
+		out_val = sess.run(output_group, 
+					feed_dict={group_x:test_features})
 
-if train:
-	model()
-else:
-	pass
+		num_correct = 0
+		out_val = np.reshape(out_val, (1, -1))
+
+		for i in range(len(test_labels)):
+			if(out_val[0][i] >= 1 and test_labels[i] == 1):
+				num_correct += 1
+			elif(out_val[0][i] <= -1 and test_labels[i] == -1):
+				num_correct += 1
+			elif(out_val[0][i] < 1 and out_val[0][i] > -1 and test_labels[i] == 0):
+				num_correct += 1
+
+		print("Total Correct:")
+		print(num_correct)
+		print("Out of:")
+		print(len(test_labels))
+
+
+model()
