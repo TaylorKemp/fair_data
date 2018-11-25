@@ -21,12 +21,12 @@ def model():
 
 	with tf.name_scope("features"):
 		with tf.name_scope("subGroup"):
+			len_group = tf.placeholder(tf.float32, shape=(), name="group_len")
 			group_x = tf.placeholder(tf.float32, shape=(None, num_features))
 
 		with tf.name_scope("remainingData"):
+			len_rest = tf.placeholder(tf.float32, shape=(), name="rest_len")
 			rest_of_x = tf.placeholder(tf.float32, shape=(None, num_features))
-
-		x_features = tf.placeholder(tf.float32, shape=(None, num_features))
 
 	with tf.name_scope("labels"):
 		with tf.name_scope("subGroup"):
@@ -58,13 +58,13 @@ def model():
 			lam_value = tf.constant(lam)
 
 		with tf.name_scope("expected_loss_sub"):
-			zero = tf.constant(0.0)
+			zeros = tf.constant([0.0, 0.0, 0.0], shape=(1,3))
 			group_loss = tf.losses.mean_squared_error(group_y, output_group)
 
 		squared_error = tf.losses.mean_squared_error(labels, output)
 
 		with tf.name_scope("regularizer"):#need to scale these by the size of the other
-			exp = tf.exp(group_loss - squared_error)
+			exp = tf.exp(len_rest * group_loss - len_group * squared_error)
 			reg = tf.log(tf.constant(1.0)+exp)#fix to have sub loss not be a fixed input so gradients can pass
 		
 		loss = squared_error + lam_value * reg
@@ -88,19 +88,28 @@ def model():
 		for batch in batches:
 			for epoch in range(num_epochs):
 				sub_x, sub_y, rest_x, rest_y = rd.get_groups(batch, groups[epoch % num_groups], column)
-				#issue regarding what if no occurences of group happens in dataset, or batch???
-				#potential issue of this is that it will cause problems with how model is defined currently
-				#could potentially feed in values such that can gaurentee zero loss???
-				#not sure how I would like to proceed.
+
+				if len(sub_y) < 1:
+					sub_y = np.reshape([sess.run(bias)], (1, 1))
+					sub_x = sess.run(zeros)
+				if len(rest_y) < 1:
+					rest_y = np.reshape([sess.run(bias)], (1, 1))
+					rest_x = sess.run(zeros)
+
 				summary, overall_loss, _ = sess.run([merged, squared_error, opt], 
 					feed_dict={group_x:sub_x,
 					group_y: sub_y,
 					rest_of_x: rest_x,
-					rest_of_y: rest_y})
+					rest_of_y: rest_y,
+					len_group: len(sub_y),
+					len_rest: len(rest_y)})
 
 				if(epoch == num_epochs - 1):
 					print("summary written")
 					writer.add_summary(summary, iteration)
 					iteration = iteration + 1
 
-model()
+if train:
+	model()
+else:
+	pass

@@ -1,10 +1,24 @@
 import tensorflow as tf
 import numpy as np
 
-def read_data():
-	x = np.array([[1.0, 2.0, 2.0],[3.0, 5.0, 7.0]])
-	y = np.array([[1.0],[0.0]])
-	return x, y
+def get_line():
+	pass
+
+def write_line(line):
+	pass
+
+def read_data(filename=None):
+	if filename == None:
+		x = np.array([[1.0, 2.0, 2.0],[3.0, 5.0, 7.0]])
+		y = np.array([[1.0],[0.0]])
+		return x, y
+	else:
+		#file = np.loadtxt(filename, dtype=np.float32)
+		with open(filename) as f:
+			s = f.read(130)
+			print(s)
+			s = f.read(130)
+			print(s)
 
 def get_groups(data, filter_value, col):
 	filteredx = []
@@ -40,3 +54,5 @@ def get_batches(features, labels, batch_size):
 
 	#last batch not getting added
 	return batches
+
+read_data(filename="TEDS-D-2006-2011-DS0001-data/TEDS-D-2006-2011-DS0001-data-ascii.txt")
