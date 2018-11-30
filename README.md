@@ -11,14 +11,14 @@ The dataset used for this project can be found [here](https://www.kaggle.com/dan
 
 In order to run the script in terminal type the following. 
 
-'''console
+```console
 foo@bar:~$ python run.py
-'''
+```
 
 The code should present a plot of the accuracies of the model using different importance placed on the regularization parameter for fair data. If you then type 
 
-'''console
+```console
 foo@bar:~$ tensorboard --logdir="graph"
-'''
+```
 and go to the correct local host in a window, you should be able to see more training information as well as the graph of the model used for training. 
 
