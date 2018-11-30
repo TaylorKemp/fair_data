@@ -2,5 +2,6 @@
 *.txt
 *.xml
 *.pdf
-graph/*
+graph/
 compass/
+_pycache_/
