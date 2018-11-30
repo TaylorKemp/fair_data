@@ -1,7 +1,4 @@
 #datasets
-*.txt
-*.xml
-*.pdf
 graph/
 compass/
 __pycache__/

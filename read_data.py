@@ -155,7 +155,7 @@ def get_groups(data, filter_value, col):
 	epsilon = 0.000001
 
 	for i in range(len(x)):
-		if(np.abs(x[i][col]) - filter_value) < epsilon:
+		if(x[i][col] == filter_value):
 			filteredx.append(x[i])
 			filteredy.append(y[i])
 		else:
