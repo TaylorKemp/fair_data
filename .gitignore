@@ -4,4 +4,4 @@
 *.pdf
 graph/
 compass/
-_pycache_/
+__pycache__/
