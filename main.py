@@ -29,10 +29,10 @@ def read_csv(filename=None):
 
 def model(lam=0.0, valid=False):
 	tf.summary.FileWriterCache.clear()
-	learn_rate = 0.01#need to determine an optimal learning rate
+	learn_rate = 0.008#need to determine an optimal learning rate
 	batch_size = 200#need to determine a good batch size based on total dataset size
-	num_epochs = 5#need to determine a good epoch amount
-	iterations = 10
+	num_epochs = 20#need to determine a good epoch amount originally 5
+	iterations = 2#originally 5
 	num_groups = 2
 	groups = [0, 1]# should have values of group
 	column = 4#will need to obtain from dataset
@@ -44,6 +44,8 @@ def model(lam=0.0, valid=False):
 	#shuffle data then take 80% for training 20% for validation
 
 	num_features = len(features[0])#determine num_features based on 
+
+	#loss + lambda * regularization
 
 	with tf.Graph().as_default() as graph:
 		with tf.name_scope("features"):
@@ -92,7 +94,7 @@ def model(lam=0.0, valid=False):
 
 			with tf.name_scope("regularizer"):#need to scale these by the size of the other
 				exp = len_rest * group_loss - len_group * squared_error
-				reg = tf.nn.softplus(exp)
+				reg = tf.maximum(tf.constant(0.0), exp)#tf.nn.softplus(exp)
 			
 			loss = squared_error + lam_value * reg
 

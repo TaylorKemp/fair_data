@@ -4,6 +4,8 @@ import main as mn
 import read_data as rd
 import matplotlib.pyplot as plt
 
+#overall accuracy vs fairness(african vs other)
+
 
 def run_multiple():
 	lambdas = [0.0, 0.001, 0.01, 0.1, 0.5, 1.0, 2.0, 4.0, 5.0, 10.0]
@@ -46,7 +48,7 @@ def get_accuracy(x, w, b, y):
 		elif(out_val[0][i] <= 0 and test_labels[0][i] == -1):
 			num_correct += 1
 
-	return float(num_correct) / len(y)
+	return float(num_correct) / len(y) * 100
 
 
 def plot_values(afro, rest, oval):
@@ -64,7 +66,7 @@ def plot_values(afro, rest, oval):
 
 	# Add some text for labels, title and custom x-axis tick labels, etc.
 	ax.set_ylabel('Accuracy(%)')
-	ax.set_xlabel('Regularization Parameter')
+	ax.set_xlabel('Regularization Parameter(Fairness)')
 	ax.set_title('Affect of Regularization Parameter on Accuracy')
 	ax.set_xticks(ind)
 	ax.set_xticklabels(('0.0', '0.001', '0.01', '0.1', '0.5', '1.0', '2.0', '4.0', '5.0', '10.0'))
