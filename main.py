@@ -7,37 +7,19 @@ import matplotlib.pyplot as plt
 file="compass/propublicaCompassRecividism_data_fairml.csv/propublica_data_for_fairml.csv"#"clean_dataset.txt"
 trial = "3"
 
-def read_csv(filename=None):
-	if filename == None:
-		return
-
-	df = np.genfromtxt(filename, delimiter=',')
-	#data = np.genfromtxt(filename, delimiter=',')
-
-	df = np.delete(df, 0, 0)
-	np.random.shuffle(df)
-	train = int(len(df) * .8)
-	y_values = np.reshape(df[:train,0], (-1, 1))
-	y_values[np.where(y_values == 0)] = -1.0
-	x_values = df[:train, 1:]
-	y_test = np.reshape(df[train:, 0], (-1, 1))
-	y_test[np.where(y_test == 0)] = -1.0
-	x_test = df[train:,1:]
-
-	return x_values, y_values, x_test, y_test
-
 
 def model(lam=0.0, valid=False):
 	tf.summary.FileWriterCache.clear()
 	learn_rate = 0.008#need to determine an optimal learning rate
-	batch_size = 200#need to determine a good batch size based on total dataset size
-	num_epochs = 20#need to determine a good epoch amount originally 5
-	iterations = 2#originally 5
+	batch_size = 100#need to determine a good batch size based on total dataset size
+	num_epochs = 10#need to determine a good epoch amount originally 5
+	iterations = 5#originally 5
 	num_groups = 2
 	groups = [0, 1]# should have values of group
 	column = 4#will need to obtain from dataset
 	#procedure for choosing optimal lam for a dataset
-	features, labels,test_features, test_labels = read_csv(file)#rd.read_data(filename=file)
+	features, labels,test_features, test_labels = rd.read_csv(file)#rd.read_data(filename=file)
+	#batch_size = len(features)
 	#need to shuffle the data. This is causing a problem with the second half overriding the first half
 	#hence causing problems
 	batches = rd.get_batches(features, labels, batch_size)
@@ -45,7 +27,6 @@ def model(lam=0.0, valid=False):
 
 	num_features = len(features[0])#determine num_features based on 
 
-	#loss + lambda * regularization
 
 	with tf.Graph().as_default() as graph:
 		with tf.name_scope("features"):
