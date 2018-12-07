@@ -88,10 +88,10 @@ def plot_values(afro, rest, oval, trial):
 	ax.legend()
 	fig.savefig('images/overall_trial'+title+".png")
 
-	fig, axs = plt.subplots(nrows=1, ncols=2, sharex=True)
+	fig, axs = plt.subplots(nrows=1, ncols=2, sharex=True, figsize=(15, 5))
 
 	ax = axs[0]
-	rects1 = ax.bar(ind - width, np.subtract(afro, rest), width, color='orange', label='fairness(African-American minus Other)')
+	rects1 = ax.bar(ind, np.subtract(afro, rest), width, color='orange', label='fairness(African-American minus Other)')
 
 	# Add some text for labels, title and custom x-axis tick labels, etc.
 	ax.set_ylabel('Accuracy(%)')
@@ -102,7 +102,7 @@ def plot_values(afro, rest, oval, trial):
 	ax.legend()
 
 	ax = axs[1]
-	rects1 = ax.bar(ind - width, oval, width, color='green', label='overall accuracy')
+	rects1 = ax.bar(ind, oval, width, color='green', label='overall accuracy')
 
 	# Add some text for labels, title and custom x-axis tick labels, etc.
 	ax.set_ylabel('Accuracy(%)')
